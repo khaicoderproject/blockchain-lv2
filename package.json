@@ -1,0 +1,16 @@
+{
+  "name": "blockchain-lv2",
+  "version": "1.0.0",
+  "description": "Multi-layer product authentication with blockchain, Truffle, React, Metamask",
+  "main": "truffle-config.js",
+  "scripts": {
+    "start": "cd frontend && npm start",
+    "migrate": "truffle migrate --reset",
+    "test": "truffle test"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "truffle": "^5.9.0"
+  }
+} 
