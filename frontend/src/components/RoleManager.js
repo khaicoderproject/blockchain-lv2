@@ -16,14 +16,21 @@ export default function RoleManager({ contract, account }) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [roleList, setRoleList] = useState([]);
+  const [contractOwner, setContractOwner] = useState("");
 
   useEffect(() => {
     const fetchRole = async () => {
       if (!contract || !account) return;
-      const owner = await contract.methods.owner().call();
-      setIsOwner(owner.toLowerCase() === account.toLowerCase());
-      const r = await contract.methods.roles(account).call();
-      setMyRole(Number(r));
+      try {
+        const owner = await contract.methods.owner().call();
+        setContractOwner(owner);
+        setIsOwner(owner.toLowerCase() === account.toLowerCase());
+        const r = await contract.methods.roles(account).call();
+        setMyRole(Number(r));
+        console.log("Role check:", { owner, account, isOwner: owner.toLowerCase() === account.toLowerCase(), role: Number(r) });
+      } catch (err) {
+        console.error("Error fetching role:", err);
+      }
     };
     fetchRole();
   }, [contract, account]);
@@ -55,11 +62,52 @@ export default function RoleManager({ contract, account }) {
     e.preventDefault();
     setMsg("");
     setLoading(true);
+    
+    if (!target || target.trim() === "") {
+      setMsg("Lỗi: Vui lòng nhập địa chỉ!");
+      setLoading(false);
+      return;
+    }
+    
+    if (!target.match(/^0x[a-fA-F0-9]{40}$/)) {
+      setMsg("Lỗi: Địa chỉ không hợp lệ!");
+      setLoading(false);
+      return;
+    }
+    
     try {
-      await contract.methods.grantRole(target, role).send({ from: account });
-      setMsg("Phân quyền thành công!");
+      console.log("Granting role:", { target, role, account });
+      
+      const result = await contract.methods.grantRole(target, role).send({ 
+        from: account,
+        gas: 2000000
+      });
+      
+      console.log("Transaction result:", result);
+      setMsg("✅ Phân quyền thành công! Transaction: " + result.transactionHash);
+      
+      // Refresh role list
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      
     } catch (err) {
-      setMsg("Lỗi: " + err.message);
+      console.error("Grant role error:", err);
+      let errorMsg = "Lỗi: ";
+      
+      if (err.message.includes("Only contract owner")) {
+        errorMsg += "Chỉ owner mới có quyền phân quyền!";
+      } else if (err.message.includes("Invalid role")) {
+        errorMsg += "Role không hợp lệ!";
+      } else if (err.message.includes("User denied")) {
+        errorMsg += "Người dùng từ chối giao dịch!";
+      } else if (err.message.includes("insufficient funds")) {
+        errorMsg += "Không đủ ETH để trả gas!";
+      } else {
+        errorMsg += err.message;
+      }
+      
+      setMsg(errorMsg);
     }
     setLoading(false);
   };
@@ -115,19 +163,49 @@ export default function RoleManager({ contract, account }) {
         <h3>Quản lý vai trò</h3>
         <div><b>Địa chỉ của bạn:</b> {account}</div>
         <div><b>Vai trò hiện tại:</b> <span style={{color:'#2563eb', fontWeight:600}}>{ROLE_LABELS[myRole]}</span></div>
-        {isOwner && (
-          <form onSubmit={handleGrant} style={{marginTop:12, display:'flex', flexWrap:'wrap', gap:8, alignItems:'center'}}>
-            <input placeholder="Địa chỉ tài khoản" value={target} onChange={e => setTarget(e.target.value)} type="text" />
-            <select value={role} onChange={e => setRole(Number(e.target.value))}>
-              <option value={1}>Nhà sản xuất</option>
-              <option value={2}>Đại lý/Cửa hàng</option>
-              <option value={3}>Khách hàng</option>
-              <option value={4}>Trung tâm bảo hành</option>
-            </select>
-            <button type="submit" disabled={loading}>{loading ? "Đang phân quyền..." : "Phân quyền"}</button>
-          </form>
+        <div><b>Contract Owner:</b> <span style={{fontFamily:'monospace'}}>{contractOwner}</span></div>
+        {isOwner ? (
+          <>
+            <div style={{background:'#d1fae5', color:'#065f46', padding:'8px 12px', borderRadius:'6px', marginBottom:'12px', fontSize:'14px'}}>
+              ✅ <strong>Bạn là Owner!</strong> Bạn có quyền phân quyền cho các tài khoản khác.
+            </div>
+            <form onSubmit={handleGrant} style={{marginTop:12, display:'flex', flexWrap:'wrap', gap:8, alignItems:'center'}}>
+              <input 
+                placeholder="Địa chỉ tài khoản (0x...)" 
+                value={target} 
+                onChange={e => setTarget(e.target.value)} 
+                type="text" 
+                style={{minWidth:'300px'}}
+              />
+              <select value={role} onChange={e => setRole(Number(e.target.value))}>
+                <option value={1}>Nhà sản xuất</option>
+                <option value={2}>Đại lý/Cửa hàng</option>
+                <option value={3}>Khách hàng</option>
+                <option value={4}>Trung tâm bảo hành</option>
+              </select>
+              <button 
+                type="submit" 
+                disabled={loading || !target.trim()}
+                style={{
+                  background: loading || !target.trim() ? '#ccc' : '#2563eb',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '8px 16px',
+                  cursor: loading || !target.trim() ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {loading ? "⏳ Đang phân quyền..." : "🚀 Phân quyền"}
+              </button>
+            </form>
+          </>
+        ) : (
+          <div style={{background:'#fef3c7', color:'#92400e', padding:'8px 12px', borderRadius:'6px', marginTop:'12px', fontSize:'14px'}}>
+            ⚠️ <strong>Bạn không phải Owner!</strong> Chỉ owner mới có quyền phân quyền. 
+            <br/>Owner hiện tại: <span style={{fontFamily:'monospace'}}>{contractOwner}</span>
+          </div>
         )}
-        {msg && <div style={{marginTop:8}}>{msg}</div>}
+        {msg && <div style={{marginTop:8, padding:'8px 12px', borderRadius:'6px', background: msg.includes('✅') ? '#d1fae5' : '#fef2f2', color: msg.includes('✅') ? '#065f46' : '#dc2626'}}>{msg}</div>}
       </div>
     </>
   );

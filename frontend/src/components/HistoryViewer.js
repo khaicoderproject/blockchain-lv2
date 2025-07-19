@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import QrReader from "react-qr-reader";
-import HistoryTimeline from "./HistoryTimeline";
 
 export default function HistoryViewer({ contract, account }) {
   const [productId, setProductId] = useState("");
@@ -192,7 +191,67 @@ export default function HistoryViewer({ contract, account }) {
         </table>
       )}
       {history && history.length > 0 && viewMode==="timeline" && (
-        <HistoryTimeline history={history} warning={warning} />
+        <div className="timeline-view">
+          <div style={{background:'#f8fafc', padding:'16px', borderRadius:'8px', border:'1px solid #e2e8f0'}}>
+            <h4 style={{margin:'0 0 16px 0', color:'#1e293b'}}>Timeline View</h4>
+            {warning && <div className="warning" style={{marginBottom:'12px'}}>{warning}</div>}
+            <div style={{position:'relative'}}>
+              {history.map((rec, idx) => (
+                <div key={idx} style={{
+                  display:'flex',
+                  alignItems:'flex-start',
+                  marginBottom:'16px',
+                  position:'relative'
+                }}>
+                  <div style={{
+                    width:'12px',
+                    height:'12px',
+                    borderRadius:'50%',
+                    background:rec[0]==='Created'?'#059669':rec[0]==='Transferred'?'#2563eb':rec[0]==='Warranty'?'#f59e42':rec[0]==='Repair'?'#f43f5e':'#64748b',
+                    marginTop:'4px',
+                    marginRight:'12px',
+                    flexShrink:0
+                  }} />
+                  {idx < history.length - 1 && (
+                    <div style={{
+                      position:'absolute',
+                      left:'5px',
+                      top:'16px',
+                      width:'2px',
+                      height:'calc(100% - 8px)',
+                      background:'#e2e8f0'
+                    }} />
+                  )}
+                  <div style={{flex:1}}>
+                    <div style={{
+                      fontWeight:'600',
+                      color:rec[0]==='Created'?'#059669':rec[0]==='Transferred'?'#2563eb':rec[0]==='Warranty'?'#f59e42':rec[0]==='Repair'?'#f43f5e':'#64748b',
+                      marginBottom:'4px'
+                    }}>
+                      {rec[0]==='Created'? '🟢': rec[0]==='Transferred'? '🔄': rec[0]==='Warranty'? '🛠️': rec[0]==='Repair'? '🔧':'❓'} {rec[0]}
+                    </div>
+                    <div style={{fontSize:'14px', color:'#64748b', marginBottom:'4px'}}>
+                      <strong>Actor:</strong> {rec[1]?.slice(0,6)+'...'+rec[1]?.slice(-4)}
+                    </div>
+                    <div style={{fontSize:'14px', color:'#64748b', marginBottom:'4px'}}>
+                      <strong>Time:</strong> {new Date(Number(rec[2])*1000).toLocaleString()}
+                    </div>
+                    {rec[3] && (
+                      <div style={{fontSize:'14px', color:'#64748b', marginBottom:'4px', fontStyle:'italic'}}>
+                        <strong>Note:</strong> {rec[3]}
+                      </div>
+                    )}
+                    {rec[4] && rec[4] !== "0x0000000000000000000000000000000000000000" && (
+                      <div style={{fontSize:'14px', color:'#64748b'}}>
+                        <strong>New Owner:</strong> {rec[4]?.slice(0,6)+'...'+rec[4]?.slice(-4)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
       {history && history.length === 0 && !loading && (
         <div style={{color:'#888',marginTop:12,fontSize:15}}>Chưa có lịch sử cho sản phẩm này hoặc chưa nhập mã sản phẩm.</div>
