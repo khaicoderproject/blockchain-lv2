@@ -174,10 +174,10 @@ export default function HistoryViewer({ contract, account }) {
       {warning && <div className="warning">{warning}</div>}
       {history && history.length > 0 && viewMode==="table" && (
         <table className="table-history">
-          <thead><tr><th>Hành động</th><th>Người thực hiện</th><th>Thời gian</th><th>Ghi chú</th><th>Chủ sở hữu mới</th></tr></thead>
+          <thead><tr><th>Hành động</th><th>Người thực hiện</th><th>Thời gian</th><th>Ghi chú</th><th>Chủ sở hữu mới</th><th>Trạng thái</th></tr></thead>
           <tbody>
             {history.map((rec, idx) => (
-              <tr key={idx}>
+              <tr key={idx} style={rec[5] ? {background:'#fef2f2', borderLeft:'4px solid #dc2626'} : {}}>
                 <td style={{fontWeight:700, color:rec[0]==='Created'?'#059669':rec[0]==='Transferred'?'#2563eb':rec[0]==='Warranty'?'#f59e42':rec[0]==='Repair'?'#f43f5e':'#222', textAlign:'center'}}>
                   {rec[0]==='Created'? '🟢': rec[0]==='Transferred'? '🔄': rec[0]==='Warranty'? '🛠️': rec[0]==='Repair'? '🔧':'❓'} {rec[0]}
                 </td>
@@ -185,6 +185,15 @@ export default function HistoryViewer({ contract, account }) {
                 <td>{new Date(Number(rec[2])*1000).toLocaleString()}</td>
                 <td style={{fontStyle:'italic'}}>{rec[3]}</td>
                 <td title={rec[4]} style={{fontFamily:'monospace', cursor:'pointer'}}>{rec[4]?.slice(0,6)+'...'+rec[4]?.slice(-4)}</td>
+                <td style={{textAlign:'center'}}>
+                  {rec[5] ? (
+                    <span style={{color:'#dc2626', fontWeight:600, fontSize:'12px'}} title={rec[6]}>
+                      ⚠️ SUSPICIOUS
+                    </span>
+                  ) : (
+                    <span style={{color:'#059669', fontSize:'12px'}}>✅ NORMAL</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -229,6 +238,7 @@ export default function HistoryViewer({ contract, account }) {
                       marginBottom:'4px'
                     }}>
                       {rec[0]==='Created'? '🟢': rec[0]==='Transferred'? '🔄': rec[0]==='Warranty'? '🛠️': rec[0]==='Repair'? '🔧':'❓'} {rec[0]}
+                      {rec[5] && <span style={{color:'#dc2626', marginLeft:'8px', fontSize:'12px'}}>⚠️ SUSPICIOUS</span>}
                     </div>
                     <div style={{fontSize:'14px', color:'#64748b', marginBottom:'4px'}}>
                       <strong>Actor:</strong> {rec[1]?.slice(0,6)+'...'+rec[1]?.slice(-4)}
@@ -244,6 +254,11 @@ export default function HistoryViewer({ contract, account }) {
                     {rec[4] && rec[4] !== "0x0000000000000000000000000000000000000000" && (
                       <div style={{fontSize:'14px', color:'#64748b'}}>
                         <strong>New Owner:</strong> {rec[4]?.slice(0,6)+'...'+rec[4]?.slice(-4)}
+                      </div>
+                    )}
+                    {rec[5] && rec[6] && (
+                      <div style={{fontSize:'12px', color:'#dc2626', marginTop:'4px', fontStyle:'italic'}}>
+                        <strong>⚠️ Reason:</strong> {rec[6]}
                       </div>
                     )}
                   </div>

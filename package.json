@@ -6,6 +6,8 @@
   "scripts": {
     "start": "cd frontend && npm start",
     "migrate": "truffle migrate --reset",
+    "deploy": "truffle migrate --reset && node scripts/update-contract-info.js",
+    "update-contract": "node scripts/update-contract-info.js",
     "test": "truffle test"
   },
   "author": "",

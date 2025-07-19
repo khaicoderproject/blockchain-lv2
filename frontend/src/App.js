@@ -9,6 +9,7 @@ import RepairForm from "./components/RepairForm";
 import HistoryViewer from "./components/HistoryViewer";
 import RoleManager from "./components/RoleManager";
 import ContractInfo from "./components/ContractInfo";
+import AntiCounterfeitInfo from "./components/AntiCounterfeitInfo";
 import "./index.css";
 
 const ROLE_LABELS = [
@@ -19,8 +20,18 @@ const ROLE_LABELS = [
   "Trung tâm bảo hành"
 ];
 
-// Contract address cứng - cập nhật sau khi deploy
-const CONTRACT_ADDRESS = "0x2a3d836D824fc45Abd3dCa9124E9bb69b80D1b46";
+// Lấy contract address từ ABI
+const getContractAddress = () => {
+  try {
+    const networkId = '5777'; // Ganache network ID
+    return ProductLifecycle.networks[networkId]?.address;
+  } catch (error) {
+    console.error('Error getting contract address:', error);
+    return null;
+  }
+};
+
+const CONTRACT_ADDRESS = getContractAddress();
 const NETWORK_ID = 5777;
 
 function App() {
@@ -55,6 +66,12 @@ function App() {
   useEffect(() => {
     const loadContract = async () => {
       if (!web3 || !account) return;
+
+      // Kiểm tra contract address
+      if (!CONTRACT_ADDRESS) {
+        setStatus("Lỗi: Không tìm thấy contract address. Vui lòng deploy contract trước!");
+        return;
+      }
 
       try {
         const networkId = await web3.eth.net.getId();
@@ -141,6 +158,7 @@ function App() {
           {role === 4 && <div className="card"><WarrantyForm contract={contract} account={account} /></div>}
           {role === 4 && <div className="card"><RepairForm contract={contract} account={account} /></div>}
           <div className="card"><HistoryViewer contract={contract} account={account} /></div>
+          <div className="card"><AntiCounterfeitInfo contract={contract} account={account} /></div>
         </>
       ) : (
         <div style={{margin:'32px 0', color:'#888', textAlign:'center'}}>Đang kết nối hoặc chưa sẵn sàng...</div>

@@ -17,12 +17,44 @@ export default function WarrantyForm({ contract, account }) {
     }
     setLoading(true);
     try {
-      await contract.methods.warrantyProduct(productId, note || "").send({ from: account });
-      setSuccess("Ghi nhận bảo hành thành công!");
+      // Thử với gas limit cao hơn và gas price
+      const result = await contract.methods.warrantyProduct(productId, note || "").send({ 
+        from: account,
+        gas: 500000, // Tăng gas limit
+        gasPrice: '20000000000' // 20 Gwei
+      });
+      
+      console.log("Warranty transaction:", result);
+      setSuccess("Ghi nhận bảo hành thành công! Transaction: " + result.transactionHash);
       setProductId("");
       setNote("");
     } catch (err) {
-      setError(err.message);
+      console.error("Warranty error:", err);
+      let errorMsg = "Lỗi: ";
+      
+      if (err.message.includes("Only contract owner")) {
+        errorMsg += "Chỉ owner mới có quyền này!";
+      } else if (err.message.includes("Your role is not allowed")) {
+        errorMsg += "Bạn không có vai trò Trung tâm bảo hành!";
+      } else if (err.message.includes("You are not the product owner")) {
+        errorMsg += "Bạn không phải chủ sở hữu sản phẩm này!";
+      } else if (err.message.includes("Product does not exist")) {
+        errorMsg += "Sản phẩm không tồn tại!";
+      } else if (err.message.includes("User denied")) {
+        errorMsg += "Người dùng từ chối giao dịch!";
+      } else if (err.message.includes("insufficient funds")) {
+        errorMsg += "Không đủ ETH để trả gas!";
+      } else if (err.message.includes("Action too frequent")) {
+        errorMsg += "Hành động quá nhanh! Vui lòng đợi ít nhất 10 giây giữa các lần thực hiện.";
+      } else if (err.message.includes("Internal JSON-RPC error") || err.message.includes("connection")) {
+        errorMsg += "Lỗi kết nối blockchain. Vui lòng kiểm tra Ganache và thử lại!";
+      } else if (err.message.includes("gas")) {
+        errorMsg += "Lỗi gas. Vui lòng thử lại với gas limit cao hơn!";
+      } else {
+        errorMsg += err.message;
+      }
+      
+      setError(errorMsg);
     }
     setLoading(false);
   };
@@ -56,6 +88,13 @@ export default function WarrantyForm({ contract, account }) {
         <div style={{background:'#f0f4ff',padding:8,marginBottom:8,borderRadius:4,fontSize:14}}>
           <b>Flow bảo hành:</b> Bạn phải là <b>chủ sở hữu sản phẩm</b> và có vai trò <b>Trung tâm bảo hành</b> mới ghi nhận bảo hành được.<br/>
           Nếu không đúng, hệ thống sẽ báo lỗi cụ thể.
+        </div>
+        <div style={{background:'#fff3cd',padding:8,marginBottom:8,borderRadius:4,fontSize:13,border:'1px solid #ffeaa7'}}>
+          <b>⚠️ Giới hạn bảo mật:</b><br/>
+          • Tối thiểu <b>10 giây</b> giữa các action<br/>
+          • Tối đa <b>2 lần bảo hành</b> trong 5 phút<br/>
+          • Tối đa <b>20 hoạt động</b> trong 1 giờ<br/>
+          • Tối thiểu <b>30 giây</b> giữa các action để tránh spam
         </div>
         <div style={{display:'flex', flexWrap:'wrap', gap:8, alignItems:'center', marginBottom:8}}>
           <input placeholder="Mã sản phẩm" value={productId} onChange={e => setProductId(e.target.value)} type="text" />
